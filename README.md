@@ -67,3 +67,20 @@ For example, to test input `my_test.txt` and expected output `my_test.out.txt`:
 ```bash
 aoc test 1 my_test
 ```
+
+## Development
+
+We use Rust + cargo for main development, Python 3 for system testing.
+
+For debugging/building:
+
+```bash
+cargo run
+cargo build
+```
+
+For system testing (run in main directory):
+
+```bash
+python3 testing/system_test.py
+```
