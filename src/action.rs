@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 extern crate clap;
-use crate::runner;
+use crate::{files, runner};
 use clap::{
     crate_authors, crate_description, crate_name, crate_version, App, AppSettings, Arg, SubCommand,
 };
@@ -80,17 +80,20 @@ impl Action {
     pub fn execute(self) {
         match self {
             Action::Run { part, input } => {
-                let prog_filename = format!("{}.py", part);
-                let input_filename = format!("{}.txt", input);
-                let output = runner::run_python_prog(&prog_filename, &input_filename);
+                let prog_filename = files::get_prog_filename(&part);
+                let input_filename = files::get_input_filename(&input);
+                let output = runner::run_python_prog(&prog_filename, &input_filename)
+                    .unwrap_or_else(|err| panic!("{}", err));
                 print!("{}", output);
             }
             Action::Write { part, input } => {
-                let prog_filename = format!("{}.py", part);
-                let input_filename = format!("{}.txt", input);
-                let output_filename = format!("{}.out.txt", input);
-                let output = runner::run_python_prog(&prog_filename, &input_filename);
-                runner::write_output_safe(&output_filename, &output);
+                let prog_filename = files::get_prog_filename(&part);
+                let input_filename = files::get_input_filename(&input);
+                let output_filename = files::get_output_filename(&input);
+                let output = runner::run_python_prog(&prog_filename, &input_filename)
+                    .unwrap_or_else(|err| panic!("{}", err));
+                runner::write_output(&output_filename, &output)
+                    .unwrap_or_else(|err| panic!("{}", err));
             }
             Action::NoOp => (),
         }

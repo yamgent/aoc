@@ -10,16 +10,21 @@ fn get_python_name() -> &'static str {
     }
 }
 
-pub fn run_python_prog(prog_filename: &str, input_filename: &str) -> String {
-    let input = fs::read_to_string(&input_filename)
-        .unwrap_or_else(|err| panic!("Cannot open {}. {}", input_filename, err));
+pub fn run_python_prog(prog_filename: &str, input_filename: &str) -> Result<String, String> {
+    let input = match fs::read_to_string(&input_filename) {
+        Ok(content) => content,
+        Err(err) => return Err(format!("Cannot open {}. {}", input_filename, err)),
+    };
 
-    let process = Command::new(get_python_name())
+    let process = match Command::new(get_python_name())
         .arg(prog_filename)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
-        .unwrap_or_else(|err| panic!("Cannot execute python: {}", err));
+    {
+        Ok(res) => res,
+        Err(err) => return Err(format!("Cannot execute python: {}", err)),
+    };
 
     process
         .stdin
@@ -34,10 +39,12 @@ pub fn run_python_prog(prog_filename: &str, input_filename: &str) -> String {
         .read_to_string(&mut output)
         .unwrap_or_else(|err| panic!("Cannot receive python output. {}", err));
 
-    output
+    Ok(output)
 }
 
-pub fn write_output_safe(output_filename: &str, output: &str) {
-    fs::write(&output_filename, output)
-        .unwrap_or_else(|err| eprintln!("Cannot write to file {}. {}", output_filename, err));
+pub fn write_output(output_filename: &str, output: &str) -> Result<(), String> {
+    match fs::write(&output_filename, output) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(format!("Cannot write to file {}. {}", output_filename, err)),
+    }
 }
