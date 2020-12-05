@@ -36,3 +36,8 @@ pub fn run_python_prog(prog_filename: &str, input_filename: &str) -> String {
 
     output
 }
+
+pub fn write_output_safe(output_filename: &str, output: &str) {
+    fs::write(&output_filename, output)
+        .unwrap_or_else(|err| eprintln!("Cannot write to file {}. {}", output_filename, err));
+}
