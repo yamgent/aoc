@@ -1,5 +1,21 @@
+# SPDX-License-Identifier: MIT
+import os
 import sys
 import subprocess
+
+AOC_PATH = '../../target/debug/aoc'
+TESTING_PATH = './testing/'
+
+
+def get_test_directory_path(directory):
+    return TESTING_PATH + directory + '/'
+
+
+def clean(dir_path, files):
+    for file in files:
+        if os.path.isfile(dir_path + file):
+            os.remove(dir_path + file)
+
 
 def assert_eq(actual, expected, message):
     if actual != expected:
@@ -13,8 +29,25 @@ def assert_eq(actual, expected, message):
 
 def do_stdout_test_case(test_name, directory, aoc_args, expected):
     print('Test', test_name)
-    process = subprocess.run(['../../target/debug/aoc'] + aoc_args, check=True, capture_output=True, cwd='./testing/' + directory)
+    process = subprocess.run([AOC_PATH] + aoc_args, check=True, capture_output=True, cwd=get_test_directory_path(directory))
     assert_eq(process.stdout.decode('utf-8'), expected, test_name + ' test FAILED')
+
+
+def do_writing_test_case(test_name, directory, files_to_clean, aoc_args, expected_filename, expected):
+    dir_path = get_test_directory_path(directory)
+    expected_path = dir_path + expected_filename
+    print('Test', test_name)
+
+    clean(dir_path, files_to_clean)
+
+    subprocess.run([AOC_PATH] + aoc_args, check=True, cwd=dir_path)
+    if expected is None:
+        assert_eq('exist' if os.path.isfile(expected_path) else None, None, test_name + ' test FAILED')
+    else:
+        actual = open(expected_path, 'r').read() if os.path.isfile(expected_path) else ''
+        assert_eq(actual, expected, test_name + ' test FAILED')
+
+    clean(dir_path, files_to_clean)
 
 
 def main():
@@ -76,6 +109,23 @@ def main():
         'FAILED some test cases.',
         ''
     ]))
+
+    # write live should write 
+    do_writing_test_case('Write Live', 'write', ['1.out.txt', '1.other.out.txt'], ['write', '1'], '1.out.txt', '\n'.join([
+        'The quick',
+        'brown fox',
+        'lazy dog.',
+        ''
+    ]))
+    do_writing_test_case('Write Live No Touch Others', 'write', ['1.out.txt', '1.other.out.txt'], ['write', '1'], '1.other.out.txt', None)
+
+    # write custom live should write 
+    do_writing_test_case('Write Others', 'write', ['1.out.txt', '1.other.out.txt'], ['write', '1', '1.other'], '1.other.out.txt', '\n'.join([
+        'This is alternative',
+        'input.',
+        ''
+    ]))
+    do_writing_test_case('Write Others No Touch Live', 'write', ['1.out.txt', '1.other.out.txt'], ['write', '1', '1.other'], '1.out.txt', None)
 
 
 main()
