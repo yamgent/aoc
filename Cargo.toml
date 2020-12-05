@@ -1,5 +1,6 @@
 [package]
 name = "aoc"
+description = "Advent of Code runner"
 version = "0.1.0"
 authors = ["Tan Wang Leng <tanwangleng@outlook.com>"]
 edition = "2018"
@@ -8,3 +9,4 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = "2.33.3"
