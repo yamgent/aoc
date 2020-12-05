@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 use crate::files;
 use std::fs;
 use std::io::prelude::*;
