@@ -2,7 +2,7 @@ use std::fs;
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
 
-pub fn get_python_name() -> &'static str {
+fn get_python_name() -> &'static str {
     if cfg!(windows) {
         "py"
     } else {
@@ -10,15 +10,12 @@ pub fn get_python_name() -> &'static str {
     }
 }
 
-pub fn execute(part: String) {
-    let input_file_name = format!("{}.txt", part);
-    let prog_file_name = format!("{}.py", part);
-
-    let input = fs::read_to_string(&input_file_name)
-        .unwrap_or_else(|err| panic!("Cannot open {}. {}", input_file_name, err));
+pub fn run_python_prog(prog_filename: &str, input_filename: &str) -> String {
+    let input = fs::read_to_string(&input_filename)
+        .unwrap_or_else(|err| panic!("Cannot open {}. {}", input_filename, err));
 
     let process = Command::new(get_python_name())
-        .arg(prog_file_name)
+        .arg(prog_filename)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -37,5 +34,5 @@ pub fn execute(part: String) {
         .read_to_string(&mut output)
         .unwrap_or_else(|err| panic!("Cannot receive python output. {}", err));
 
-    print!("{}", output);
+    output
 }

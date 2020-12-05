@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 extern crate clap;
-use crate::actions;
+use crate::runner;
 use clap::{
     crate_authors, crate_description, crate_name, crate_version, App, AppSettings, Arg, SubCommand,
 };
@@ -42,7 +42,12 @@ impl Action {
 
     pub fn execute(self) {
         match self {
-            Action::Run { part } => actions::run::execute(part),
+            Action::Run { part } => {
+                let input_filename = format!("{}.txt", part);
+                let prog_filename = format!("{}.py", part);
+                let output = runner::run_python_prog(&prog_filename, &input_filename);
+                print!("{}", output);
+            }
             Action::NoOp => (),
         }
     }
