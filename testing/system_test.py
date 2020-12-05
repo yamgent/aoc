@@ -119,7 +119,7 @@ def main():
     ]))
     do_writing_test_case('Write Live No Touch Others', 'write', ['1.out.txt', '1.other.out.txt'], ['write', '1'], '1.other.out.txt', None)
 
-    # write custom live should write 
+    # write custom should write
     do_writing_test_case('Write Others', 'write', ['1.out.txt', '1.other.out.txt'], ['write', '1', '1.other'], '1.other.out.txt', '\n'.join([
         'This is alternative',
         'input.',
