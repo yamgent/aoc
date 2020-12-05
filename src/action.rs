@@ -13,9 +13,19 @@ const SUBCMD_WRITE: &str = "write";
 const SUBCMD_WRITE_PART: &str = "PART";
 const SUBCMD_WRITE_INPUT: &str = "INPUT";
 
+const SUBCMD_TEST: &str = "test";
+const SUBCMD_TEST_PART: &str = "PART";
+const SUBCMD_TEST_INPUT: &str = "INPUT";
+
+pub enum TestType {
+    All,
+    Specific { input: String },
+}
+
 pub enum Action {
     Run { part: String, input: String },
     Write { part: String, input: String },
+    Test { part: String, test_type: TestType },
     NoOp,
 }
 
@@ -56,6 +66,21 @@ impl Action {
                             .index(2),
                     ),
             )
+            .subcommand(
+                SubCommand::with_name(SUBCMD_TEST)
+                    .about("test each input for part")
+                    .arg(
+                        Arg::with_name(SUBCMD_TEST_PART)
+                            .help("which part to test")
+                            .required(true)
+                            .index(1),
+                    )
+                    .arg(
+                        Arg::with_name(SUBCMD_TEST_INPUT)
+                            .help("which particular test input to run")
+                            .index(2),
+                    ),
+            )
             .get_matches();
 
         if let Some(matches) = matches.subcommand_matches(SUBCMD_RUN) {
@@ -72,6 +97,15 @@ impl Action {
                 .unwrap_or(&part)
                 .to_string();
             Action::Write { part, input }
+        } else if let Some(matches) = matches.subcommand_matches(SUBCMD_TEST) {
+            let part = matches.value_of(SUBCMD_TEST_PART).unwrap().to_string();
+            let test_type = match matches.value_of(SUBCMD_TEST_INPUT) {
+                Some(input) => TestType::Specific {
+                    input: input.to_string(),
+                },
+                None => TestType::All,
+            };
+            Action::Test { part, test_type }
         } else {
             Action::NoOp
         }
@@ -94,6 +128,68 @@ impl Action {
                     .unwrap_or_else(|err| panic!("{}", err));
                 runner::write_output(&output_filename, &output)
                     .unwrap_or_else(|err| panic!("{}", err));
+            }
+            Action::Test { part, test_type } => {
+                let prog_filename = files::get_prog_filename(&part);
+
+                let test_cases = match test_type {
+                    TestType::Specific { input } => vec![runner::TestCase {
+                        input_filename: files::get_input_filename(&input),
+                        expected_output_filename: files::get_output_filename(&input),
+                    }],
+                    TestType::All => {
+                        let test_prefix = files::get_test_prefix(&part);
+                        let test_files = files::get_all_input_filenames_with_prefix(&test_prefix)
+                            .unwrap_or_else(|err| panic!("{}", err));
+                        let mut test_files: Vec<runner::TestCase> = test_files
+                            .iter()
+                            .map(|f| runner::TestCase {
+                                input_filename: f.to_string(),
+                                expected_output_filename: files::get_output_filename(
+                                    &files::remove_ext(f, files::INPUT_EXT),
+                                ),
+                            })
+                            .collect();
+
+                        // if live input and output are available,
+                        // then let's add them too (this is optional)
+                        let live_input = files::get_input_filename(&part);
+                        let live_output = files::get_output_filename(&part);
+                        if files::file_exists(&live_input) && files::file_exists(&live_output) {
+                            test_files.push(runner::TestCase {
+                                input_filename: live_input,
+                                expected_output_filename: live_output,
+                            });
+                        }
+
+                        test_files
+                    }
+                };
+
+                let (mut success, mut failure, mut error) = (0, 0, 0);
+                let test_results: Vec<(runner::TestCase, runner::TestResult)> = test_cases
+                    .into_iter()
+                    .map(|tc| {
+                        let result = runner::run_test(&prog_filename, &tc);
+                        match result {
+                            runner::TestResult::Success => success += 1,
+                            runner::TestResult::Failure => failure += 1,
+                            _ => error += 1,
+                        }
+                        (tc, result)
+                    })
+                    .collect();
+
+                for (tc, tres) in test_results {
+                    println!("{}", runner::get_test_result_string(&tc, &tres));
+                }
+                println!();
+                println!("{} success, {} failure, {} error", success, failure, error);
+                if failure == 0 && error == 0 {
+                    println!("All test cases passed.");
+                } else {
+                    println!("FAILED some test cases.");
+                }
             }
             Action::NoOp => (),
         }

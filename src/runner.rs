@@ -1,3 +1,4 @@
+use crate::files;
 use std::fs;
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
@@ -47,4 +48,66 @@ pub fn write_output(output_filename: &str, output: &str) -> Result<(), String> {
         Ok(_) => Ok(()),
         Err(err) => Err(format!("Cannot write to file {}. {}", output_filename, err)),
     }
+}
+
+pub struct TestCase {
+    pub input_filename: String,
+    pub expected_output_filename: String,
+}
+
+pub enum TestResult {
+    Success,
+    Failure,
+    NoInputFile,
+    NoOutputFile,
+    RunError { error: String },
+}
+
+pub fn run_test(prog_filename: &str, test_case: &TestCase) -> TestResult {
+    if !files::file_exists(&test_case.input_filename) {
+        return TestResult::NoInputFile;
+    }
+
+    if !files::file_exists(&test_case.expected_output_filename) {
+        return TestResult::NoOutputFile;
+    }
+
+    let actual_output = match run_python_prog(&prog_filename, &test_case.input_filename) {
+        Ok(output) => output,
+        Err(err) => return TestResult::RunError { error: err },
+    };
+
+    let expected_output = match fs::read_to_string(&test_case.expected_output_filename) {
+        Ok(output) => output,
+        Err(err) => {
+            return TestResult::RunError {
+                error: format!(
+                    "Cannot read output file {}. {}",
+                    &test_case.expected_output_filename, err
+                ),
+            }
+        }
+    };
+
+    if actual_output != expected_output {
+        return TestResult::Failure;
+    }
+    TestResult::Success
+}
+
+pub fn get_test_result_string(test_case: &TestCase, test_result: &TestResult) -> String {
+    let result_string = match test_result {
+        TestResult::Success => "SUCCESS",
+        TestResult::Failure => "FAILURE",
+        TestResult::NoInputFile => "INPUT-MISSING",
+        TestResult::NoOutputFile => "OUTPUT-MISSING",
+        TestResult::RunError { .. } => "RUN-ERROR",
+    };
+    let icon = match test_result {
+        TestResult::Success => "   ",
+        TestResult::Failure => "(X)",
+        _ => "(!)",
+    };
+
+    format!("{} {} {}", icon, test_case.input_filename, result_string)
 }
