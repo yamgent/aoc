@@ -7,9 +7,10 @@ use clap::{
 
 const SUBCMD_RUN: &str = "run";
 const SUBCMD_RUN_PART: &str = "PART";
+const SUBCMD_RUN_INPUT: &str = "INPUT";
 
 pub enum Action {
-    Run { part: String },
+    Run { part: String, input: String },
     NoOp,
 }
 
@@ -26,15 +27,24 @@ impl Action {
                     .arg(
                         Arg::with_name(SUBCMD_RUN_PART)
                             .help("which part to execute")
-                            .required(true),
+                            .required(true)
+                            .index(1),
+                    )
+                    .arg(
+                        Arg::with_name(SUBCMD_RUN_INPUT)
+                            .help("which input to feed in")
+                            .index(2),
                     ),
             )
             .get_matches();
 
         if let Some(matches) = matches.subcommand_matches(SUBCMD_RUN) {
-            Action::Run {
-                part: matches.value_of(SUBCMD_RUN_PART).unwrap().to_string(),
-            }
+            let part = matches.value_of(SUBCMD_RUN_PART).unwrap().to_string();
+            let input = matches
+                .value_of(SUBCMD_RUN_INPUT)
+                .unwrap_or(&part)
+                .to_string();
+            Action::Run { part, input }
         } else {
             Action::NoOp
         }
@@ -42,9 +52,9 @@ impl Action {
 
     pub fn execute(self) {
         match self {
-            Action::Run { part } => {
-                let input_filename = format!("{}.txt", part);
+            Action::Run { part, input } => {
                 let prog_filename = format!("{}.py", part);
+                let input_filename = format!("{}.txt", input);
                 let output = runner::run_python_prog(&prog_filename, &input_filename);
                 print!("{}", output);
             }
