@@ -16,6 +16,16 @@ We assume that:
 Note that live input/output means your actual inputs/outputs for the problem.
 You can also have as many test cases as you want, but we only handle 1 live input.
 
+## Installation
+
+No official crate release for now; this must be compiled and installed manually:
+
+```bash
+git clone https://github.com/yamgent/aoc.git
+cd aoc
+cargo install --path .
+```
+
 ## How to Use
 
 All examples below assume you want to run part 1.
