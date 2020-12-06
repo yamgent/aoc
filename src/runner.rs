@@ -58,7 +58,7 @@ pub struct TestCase {
 
 pub enum TestResult {
     Success,
-    Failure,
+    Failure { actual: String, expected: String },
     NoInputFile,
     NoOutputFile,
     RunError { error: String },
@@ -91,7 +91,10 @@ pub fn run_test(prog_filename: &str, test_case: &TestCase) -> TestResult {
     };
 
     if actual_output != expected_output {
-        return TestResult::Failure;
+        return TestResult::Failure {
+            actual: actual_output,
+            expected: expected_output,
+        };
     }
     TestResult::Success
 }
@@ -99,16 +102,37 @@ pub fn run_test(prog_filename: &str, test_case: &TestCase) -> TestResult {
 pub fn get_test_result_string(test_case: &TestCase, test_result: &TestResult) -> String {
     let result_string = match test_result {
         TestResult::Success => "SUCCESS",
-        TestResult::Failure => "FAILURE",
+        TestResult::Failure { .. } => "FAILURE",
         TestResult::NoInputFile => "INPUT-MISSING",
         TestResult::NoOutputFile => "OUTPUT-MISSING",
         TestResult::RunError { .. } => "RUN-ERROR",
     };
     let icon = match test_result {
         TestResult::Success => "   ",
-        TestResult::Failure => "(X)",
+        TestResult::Failure { .. } => "(X)",
         _ => "(!)",
     };
 
     format!("{} {} {}", icon, test_case.input_filename, result_string)
+}
+
+pub fn get_diff(test_case: &TestCase, test_result: &TestResult) -> String {
+    match test_result {
+        TestResult::Failure { actual, expected } => vec![
+            format!(
+                "===== DIFF ({}) =====",
+                test_case.input_filename.to_string()
+            ),
+            "".to_string(),
+            "### Actual:".to_string(),
+            actual.to_string(),
+            "### Expected:".to_string(),
+            expected.to_string(),
+            "==== END ====".to_string(),
+        ]
+        .join("\n"),
+        _ => {
+            panic!("Should not call get_diff() on non-failure cases.");
+        }
+    }
 }

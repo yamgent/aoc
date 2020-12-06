@@ -110,6 +110,27 @@ def main():
         ''
     ]))
 
+    # test wrong and show diff
+    do_stdout_test_case('Test Show Diff', 'test_failure', ['test', '1', 't1.wrong', '--diff'], '\n'.join([
+        '===== DIFF (t1.wrong.txt) =====',
+        '',
+        '### Actual:',
+        '1',
+        '2',
+        '3',
+        '',
+        '### Expected:',
+        'Deliberately wrong output',
+        '',
+        '==== END ====',
+        '',
+        '(X) t1.wrong.txt FAILURE',
+        '',
+        '0 success, 1 failure, 0 error',
+        'FAILED some test cases.',
+        ''
+    ]))
+
     # write live should write 
     do_writing_test_case('Write Live', 'write', ['1.out.txt', '1.other.out.txt'], ['write', '1'], '1.out.txt', '\n'.join([
         'The quick',

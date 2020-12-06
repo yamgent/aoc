@@ -68,6 +68,14 @@ For example, to test input `my_test.txt` and expected output `my_test.out.txt`:
 aoc test 1 my_test
 ```
 
+### Run test cases with diff
+
+In case you want to view the output, you can use the `--diff` option:
+
+```bash
+aoc test 1 --diff
+```
+
 ## Development
 
 We use Rust + cargo for main development, Python 3 for system testing.

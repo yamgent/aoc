@@ -16,6 +16,7 @@ const SUBCMD_WRITE_INPUT: &str = "INPUT";
 const SUBCMD_TEST: &str = "test";
 const SUBCMD_TEST_PART: &str = "PART";
 const SUBCMD_TEST_INPUT: &str = "INPUT";
+const SUBCMD_TEST_DIFF: &str = "diff";
 
 pub enum TestType {
     All,
@@ -23,9 +24,19 @@ pub enum TestType {
 }
 
 pub enum Action {
-    Run { part: String, input: String },
-    Write { part: String, input: String },
-    Test { part: String, test_type: TestType },
+    Run {
+        part: String,
+        input: String,
+    },
+    Write {
+        part: String,
+        input: String,
+    },
+    Test {
+        part: String,
+        test_type: TestType,
+        show_diff: bool,
+    },
     NoOp,
 }
 
@@ -79,6 +90,12 @@ impl Action {
                         Arg::with_name(SUBCMD_TEST_INPUT)
                             .help("which particular test input to run")
                             .index(2),
+                    )
+                    .arg(
+                        Arg::with_name(SUBCMD_TEST_DIFF)
+                            .help("show diff")
+                            .short("d")
+                            .long(SUBCMD_TEST_DIFF),
                     ),
             )
             .get_matches();
@@ -105,7 +122,12 @@ impl Action {
                 },
                 None => TestType::All,
             };
-            Action::Test { part, test_type }
+            let show_diff = matches.is_present(SUBCMD_TEST_DIFF);
+            Action::Test {
+                part,
+                test_type,
+                show_diff,
+            }
         } else {
             Action::NoOp
         }
@@ -129,7 +151,11 @@ impl Action {
                 runner::write_output(&output_filename, &output)
                     .unwrap_or_else(|err| panic!("{}", err));
             }
-            Action::Test { part, test_type } => {
+            Action::Test {
+                part,
+                test_type,
+                show_diff,
+            } => {
                 let prog_filename = files::get_prog_filename(&part);
 
                 let test_cases = match test_type {
@@ -173,12 +199,21 @@ impl Action {
                         let result = runner::run_test(&prog_filename, &tc);
                         match result {
                             runner::TestResult::Success => success += 1,
-                            runner::TestResult::Failure => failure += 1,
+                            runner::TestResult::Failure { .. } => failure += 1,
                             _ => error += 1,
                         }
                         (tc, result)
                     })
                     .collect();
+
+                if show_diff {
+                    for (tc, tres) in &test_results {
+                        if let runner::TestResult::Failure { .. } = tres {
+                            println!("{}", runner::get_diff(&tc, &tres));
+                            println!();
+                        }
+                    }
+                }
 
                 for (tc, tres) in test_results {
                     println!("{}", runner::get_test_result_string(&tc, &tres));
